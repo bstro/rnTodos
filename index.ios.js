@@ -5,6 +5,10 @@
  */
 
 import React, { Component } from 'react';
+import { Provider, connect } from 'react-redux';
+
+import { ACTION, APP } from './types'
+import store from './Store';
 import {
   AppRegistry,
   StyleSheet,
@@ -12,21 +16,39 @@ import {
   View
 } from 'react-native';
 
+const TodosContainer = connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(Todos)
+
+const App = () => <TodosContainer />
+
+function Todos({props, actions}) {
+  const
+    { onChangeVisibilityFilter, onUpdateCreateField
+    , onAdd, onToggleClick, onToggleAll
+    , onEdit, onDestroyClick, onClearCompleted
+    } = actions;
+
+  const 
+    { todos
+    , count
+    , nowShowing
+    , createField 
+    } = props;
+  return (
+    <Text>{todos}</Text>
+  )
+}
+
 export default class rnTodos extends Component {
   render() {
     return (
-      <View style={styles.container}>
-        <Text style={styles.welcome}>
-          Welcome to React Native!
-        </Text>
-        <Text style={styles.instructions}>
-          To get started, edit index.ios.js
-        </Text>
-        <Text style={styles.instructions}>
-          Press Cmd+R to reload,{'\n'}
-          Cmd+D or shake for dev menu
-        </Text>
-      </View>
+      <Provider store={store}>
+        <View style={styles.container}>
+          <App />
+        </View>
+      </Provider>
     );
   }
 }
@@ -49,5 +71,65 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
 });
+
+const getVisibleTodos = (todos, filter) => {
+  switch (filter) {
+    case APP.ALL_TODOS:
+      return todos
+    case APP.ACTIVE_TODOS:
+      return todos.filter(t => !t.get('completed'))
+    case APP.COMPLETED_TODOS:
+      return todos.filter(t => t.get('completed'))
+    default:
+      return todos
+  }
+}
+
+function mapStateToProps(state) {
+  return {
+    props: {
+      todos: getVisibleTodos(state.get('todos'), state.get('nowShowing')),
+      createField: state.get('createField'),
+      nowShowing: state.get('nowShowing'),
+      count: state.get('todos').filter(todo => !todo.get('completed')).size
+    }
+  }
+}
+
+function mapDispatchToProps(dispatch) {
+  return {
+    actions: {
+      onUpdateCreateField: ({target}) =>
+        dispatch({ type: ACTION.UPDATE_CREATE_FIELD, text: target.value }),
+
+      onChangeVisibilityFilter: (filter) =>
+        () =>
+          dispatch({ type: ACTION.CHANGE_VISIBILITY_FILTER, filter }),
+
+      onAdd: (text) => (e) => {
+        e.preventDefault()
+        dispatch({ type: ACTION.ADD_TODO, text })
+      },
+
+      onEdit: (id, text) =>
+        ({target}) =>
+          dispatch({ type: ACTION.EDIT_TODO, text: target.value, id }),
+
+      onClearCompleted: () =>
+        dispatch({ type: ACTION.CLEAR_COMPLETED }),
+
+      onDestroyClick: (id) =>
+        () =>
+          dispatch({ type: ACTION.DELETE_TODO, id }),
+
+      onToggleClick: (id, completed) =>
+        () =>
+          dispatch({ type: ACTION.COMPLETE_TODO, completed: !completed, id }),
+
+      onToggleAll: () =>
+        dispatch({ type: ACTION.TOGGLE_ALL })
+    }
+  }
+}
 
 AppRegistry.registerComponent('rnTodos', () => rnTodos);
