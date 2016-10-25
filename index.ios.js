@@ -37,7 +37,7 @@ function Todos({props, actions}) {
     , createField 
     } = props;
   return (
-    <Text>{todos}</Text>
+    <Text>{todos.map(todo => todo.get('text'))}</Text>
   )
 }
 
